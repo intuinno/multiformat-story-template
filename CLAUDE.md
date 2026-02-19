@@ -495,6 +495,122 @@ This enables reproducibility — you can regenerate any asset or create variatio
 
 ---
 
+## ComfyUI Image & Video Generation
+
+이미지/비디오 생성은 ComfyUI 서버의 REST API를 통해 수행한다. 모든 모델은 로컬 GPU에서 실행된다 (무료).
+**유료 API 노드(Flux2Pro, GPT Image, Ideogram, Gemini 등)는 사용하지 않는다.**
+
+### Server Configuration
+```
+ComfyUI URL: http://wright.gazelle-galaxy.ts.net:8188/
+GPU: NVIDIA RTX 6000 Ada (48GB VRAM) × 2
+Disk: 3.7TB (models ~80GB 사용 중)
+```
+
+### Available Local Models — Image
+
+| Model | Type | Steps | Quality | Speed | Best For |
+|-------|------|-------|---------|-------|----------|
+| **FLUX.1 Dev** | UNet + DualCLIP | 20 | ★★★★★ | 보통 | 최고 품질 포토리얼 키아트 |
+| **FLUX.1 Schnell** | UNet + DualCLIP | 4 | ★★★★ | 빠름 | 빠른 반복 실험, 초안 |
+| **SD3.5 Large** | Checkpoint | 28 | ★★★★ | 보통 | 스타일리시한 영화 포스터풍 |
+| **z_image_turbo** | UNet + CLIP | 8 | ★★★ | 매우 빠름 | 웹툰 패널, 빠른 프로토타입 |
+
+### Available Local Models — Video
+
+| Model | Type | Best For |
+|-------|------|----------|
+| **Wan 2.2 I2V 14B** | Image-to-Video | 키아트 이미지에 모션 추가 |
+| **Wan 2.2 Lightning LoRA** | 가속 LoRA | 4스텝으로 빠른 비디오 생성 |
+
+### Model Files (설치 경로)
+
+```
+models/diffusion_models/
+  flux1-dev-fp8.safetensors          (17GB)  — FLUX.1 Dev
+  flux1-schnell-fp8.safetensors      (17GB)  — FLUX.1 Schnell
+  z_image_turbo_bf16.safetensors     (12GB)  — z_image_turbo (Lumina2 기반)
+  wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors (14GB) — Wan 2.2 I2V (high noise)
+  wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors  (14GB) — Wan 2.2 I2V (low noise)
+
+models/checkpoints/
+  sd3.5_large_fp8_scaled.safetensors (14GB)  — SD3.5 Large (all-in-one)
+
+models/text_encoders/
+  clip_l.safetensors                 (235MB) — CLIP-L (FLUX용)
+  t5xxl_fp8_e4m3fn_scaled.safetensors(4.9GB) — T5-XXL (FLUX용)
+  qwen_3_4b.safetensors              (7.5GB) — Qwen 3 4B (z_image_turbo용)
+  umt5_xxl_fp8_e4m3fn_scaled.safetensors(6.3GB) — UMT5-XXL (Wan 비디오용)
+
+models/vae/
+  ae.safetensors                     (320MB) — VAE (FLUX, z_image_turbo 공유)
+  wan_2.1_vae.safetensors            (243MB) — VAE (Wan 비디오용)
+
+models/loras/
+  Wan2.2-Lightning_I2V-A14B-4steps-lora_HIGH_fp16.safetensors (586MB)
+  Wan2.2-Lightning_I2V-A14B-4steps-lora_LOW_fp16.safetensors  (586MB)
+```
+
+### ComfyUI Workflow 구성 — Image
+
+**FLUX.1 Dev / Schnell:**
+```
+UNETLoader(weight_dtype=fp8_e4m3fn)
+  → DualCLIPLoader(clip_l + t5xxl, type=flux)
+  → CLIPTextEncode → FluxGuidance(guidance=3.5)  ← Dev만. Schnell은 guidance 불필요
+  → EmptySD3LatentImage(width, height)
+  → KSampler(steps=20/4, cfg=1.0, sampler=euler, scheduler=simple)
+  → VAEDecode(ae.safetensors) → SaveImage
+```
+
+**SD3.5 Large:**
+```
+CheckpointLoaderSimple(sd3.5_large_fp8_scaled)
+  → CLIPTextEncode (positive + negative)
+  → EmptySD3LatentImage(width, height)
+  → KSampler(steps=28, cfg=4.5, sampler=euler, scheduler=normal)
+  → VAEDecode → SaveImage
+```
+
+**z_image_turbo (기존):**
+```
+UNETLoader(z_image_turbo_bf16)
+  → CLIPLoader(qwen_3_4b, type=lumina2)
+  → ModelSamplingAuraFlow(shift=3.0)
+  → KSampler(steps=8, cfg=1.0, sampler=res_multistep, scheduler=simple)
+  → VAEDecode(ae.safetensors) → SaveImage
+```
+
+### Model Selection Guide
+
+- **키아트 최종본** → FLUX.1 Dev (20 steps, 가장 높은 프롬프트 충실도)
+- **키아트 초안/반복 실험** → FLUX.1 Schnell (4 steps, 5배 빠름)
+- **스타일리시한 포스터** → SD3.5 Large (독특한 미학, 영화 포스터풍)
+- **웹툰 패널** → z_image_turbo (가장 빠름, manhwa 스타일에 적합)
+- **비디오 클립** → Wan 2.2 I2V (키아트 이미지 기반 모션 생성)
+- **여러 모델 비교** → 같은 프롬프트+시드로 복수 모델 실행 후 비교 선택
+
+### Image Size Presets
+
+| Category | Size | 용도 |
+|----------|------|------|
+| keyart | 1280x720 | 16:9 와이드 키아트, 배너 |
+| keyart-poster | 720x1280 | 세로 포스터 |
+| webtoon | 768x1024 | 웹툰 패널 (세로 스크롤) |
+| webtoon-square | 1024x1024 | 정사각 패널 |
+
+### Adding New Models
+
+HuggingFace에서 ComfyUI 호환 모델을 다운로드하여 서버에 설치:
+```bash
+ssh wright.gazelle-galaxy.ts.net
+cd ~/codegit/ComfyUI/models/diffusion_models/
+wget https://huggingface.co/<org>/<repo>/resolve/main/<model>.safetensors
+```
+모델 추가 후 ComfyUI 재시작 없이 API 호출 시 자동 인식된다.
+
+---
+
 ## Continuity Rules
 
 - **The bible is canon.** All outputs must align with the bible. No exceptions without discussion.
