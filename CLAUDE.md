@@ -76,14 +76,14 @@ This makes git diffs readable — a one-word edit shows as a single changed line
 
 **Do this:**
 ```markdown
-The door swung open and she stepped into the dark.
-Something moved in the corner, low and quick.
-She reached for the knife at her belt, but her hand found only empty leather.
+First sentence of the paragraph.
+Second sentence continues the thought.
+Third sentence completes the paragraph.
 ```
 
 **Not this:**
 ```markdown
-The door swung open and she stepped into the dark. Something moved in the corner, low and quick. She reached for the knife at her belt, but her hand found only empty leather.
+First sentence of the paragraph. Second sentence continues the thought. Third sentence completes the paragraph.
 ```
 
 Both render identically in Markdown. The first is git-friendly.
@@ -108,8 +108,7 @@ The plot outline contains the medium-agnostic beat sheet. It also maps each beat
 ```markdown
 | Beat | Novel Chapter | Conti Episode | Screenplay Scene |
 |------|---------------|---------------|------------------|
-| Inciting incident | Ch 03 | Ep 02 | Scene 12 |
-| First act break | Ch 07 | Ep 05 | Scene 28 |
+| [beat name] | Ch NN | Ep NN | Scene NN |
 ```
 
 This keeps all outputs synchronized around the same story beats even when they segment differently.
@@ -125,15 +124,15 @@ This keeps all outputs synchronized around the same story beats even when they s
 ### Chapter Metadata
 ```markdown
 <!--
-Chapter: 3
-Title: The Crossing
+Chapter: [number]
+Title: [chapter title]
 POV: [character name]
 Timeline: [when this takes place in story time]
 Status: draft | revised | final
 Word Count Target: ~3000
 -->
 
-# The Crossing
+# [Chapter Title]
 
 [Chapter prose begins here...]
 ```
@@ -172,8 +171,8 @@ Word Count Target: ~3000
 ### Episode Metadata
 ```markdown
 <!--
-Episode: 5
-Title: The Crossing
+Episode: [number]
+Title: [episode title]
 Timeline: [when this takes place in story time]
 Status: draft | revised | final
 Panel Count: ~30
@@ -182,30 +181,30 @@ Panel Count: ~30
 
 ### Panel Format
 
-Each panel is a numbered block with layout, description, dialogue, SFX, and an image prompt:
+Each panel is a numbered block with layout, description, dialogue, SFX, and prompt references:
 
 ```markdown
-## Panel 1
+## Panel [N]
 
-**Layout:** full-width
+**Layout:** [layout type]
 
 **Description:**
-Wide establishing shot of the fortress at dawn.
-Mist curls through the valley below, catching the first light.
+[What the reader sees. One sentence per line.]
 
 **Dialogue:**
-- NARRATOR (caption): Three days since the wall fell.
+- [CHARACTER] ([bubble type]): [dialogue text]
 
-**SFX:** (wind howling)
+**SFX:** ([sound effect description])
 
 **Prompt Fragments:**
-- Setting: prompts/image/settings/fortress.md (dawn variation)
-- Style: prompts/image/styles/manhwa-dramatic.md
+- Character: prompts/image/characters/[name].md
+- Setting: prompts/image/settings/[location].md ([variation])
+- Style: prompts/image/styles/[style-name].md
 
 **Scene-Specific:**
-Wide establishing shot, camera looking up from valley, golden hour backlighting.
+[Camera angle, lighting, mood — details unique to this panel.]
 
-**Asset:** assets/conti/ep-01/panel-01-fortress-dawn-v1.png
+**Asset:** assets/conti/ep-NN/panel-NN-[descriptor]-v[N].[ext]
 ```
 
 ### Panel Layout Types
@@ -253,25 +252,19 @@ Wide establishing shot, camera looking up from valley, golden hour backlighting.
 Use markdown conventions that mirror standard screenplay formatting:
 
 ```markdown
-### INT. FORTRESS — WAR ROOM — DAWN
+### INT./EXT. [LOCATION] — [SUB-LOCATION] — [TIME]
 
-The room is half-lit by guttering candles.
-Maps cover every surface, pinned and overlapping.
-COMMANDER VOSS stands at the central table, staring at the valley below.
+[Action lines in present tense. One sentence per line.]
+[CHARACTER NAME] [does something].
 
-**VOSS**
-Three days.
-Three days and no word from the southern garrison.
+**[CHARACTER NAME]**
+[Dialogue line.]
 
-**LIEUTENANT HARA**
-(crossing to the window)
-The fog hasn't lifted since the wall fell.
-Could be they can't send riders.
+**[OTHER CHARACTER]**
+([parenthetical direction])
+[Dialogue line.]
 
-**VOSS**
-Could be they're dead.
-
-> A long silence. Voss traces a line on the map with one finger.
+> [Beat description or transition.]
 ```
 
 ### Screenplay Conventions
@@ -313,7 +306,7 @@ Target Length: ~120 pages (1 page ≈ 1 minute)
 
 ### Scenario-Specific Rules
 - **Write what the camera sees.** No internal thoughts unless expressed through action or dialogue.
-- **No "we see" or "we hear."** Just describe it. Not "We see Voss enter" → "Voss enters."
+- **No "we see" or "we hear."** Just describe it directly.
 - **Minimal camera directions.** Only specify shots when dramatically essential.
 - **Subtext over text.** Characters rarely say what they mean. Dialogue should work on two levels.
 - **Page economy.** Feature screenplays are 90-120 pages. Every scene must earn its place.
@@ -381,7 +374,7 @@ The pitch document follows industry-standard sections:
 4. Write in present tense, active voice
 5. Use **one sentence per line**
 6. Lead with the hook in every section — the first sentence of each section must grab attention
-7. Be specific, not vague — "a haunted detective" is weaker than "a detective who hallucinates his dead partner"
+7. Be specific, not vague — describe characters by their contradiction, not their archetype
 
 **After writing:**
 8. Verify all facts match the bible
@@ -390,7 +383,7 @@ The pitch document follows industry-standard sections:
 ### Pitch-Specific Rules
 - **Sell the experience, not the plot.** The pitch conveys what it FEELS like to watch this film.
 - **Comparable titles must be recent and successful.** Don't reference obscure or old films unless they're iconic.
-- **Characters are described by their contradiction.** "A pacifist soldier" is more pitchable than "a brave soldier."
+- **Characters are described by their contradiction.** A paradox is more pitchable than a type.
 - **Keep it under 5 pages.** Shorter is better. Executives skim.
 - **No spoilers in the synopsis unless essential.** Reveal the ending only if it's the selling point.
 
@@ -409,26 +402,15 @@ A complete image prompt is assembled from fragments:
 [character fragment] + [setting fragment] + [style fragment] + [scene-specific details]
 ```
 
-Example for a conti panel:
+Example composition:
 ```
-prompts/image/characters/voss.md  →  "tall man, silver-streaked black hair, deep scar across
-                                      left cheek, worn leather commander's coat, piercing grey eyes"
-prompts/image/settings/fortress.md →  "stone fortress on cliff edge, mist-filled valley below,
-                                       ancient battlements, weathered grey stone"
-prompts/image/styles/manhwa.md     →  "manhwa style, detailed linework, dynamic composition,
-                                       muted earth tones, dramatic lighting, webtoon vertical format"
-scene-specific                     →  "dawn lighting, wide establishing shot, golden hour,
-                                       camera looking up at fortress from valley"
+prompts/image/characters/[name].md   →  "[character's visual identity description]"
+prompts/image/settings/[place].md    →  "[location's visual description]"
+prompts/image/styles/[style].md      →  "[art style, linework, color palette, format]"
+scene-specific                       →  "[camera angle, lighting, time of day, mood]"
 ```
 
-Composed prompt sent to tool:
-```
-Tall man with silver-streaked black hair, deep scar across left cheek, worn leather
-commander's coat, piercing grey eyes, standing on battlements of stone fortress on cliff edge,
-mist-filled valley below, ancient weathered grey stone, dawn golden hour lighting,
-wide establishing shot looking up from valley, manhwa style, detailed linework,
-dynamic composition, muted earth tones, dramatic lighting, webtoon vertical format
-```
+The fragments are concatenated into a single prompt sent to the generation tool.
 
 ### Image Prompt Rules
 - **Always include the character's Core Appearance** from their prompt file — never describe from memory
@@ -447,7 +429,7 @@ dynamic composition, muted earth tones, dramatic lighting, webtoon vertical form
 
 ### Audio Prompt Rules
 - **Music:** Describe genre, mood, tempo, key instruments, dynamics (builds, drops), and duration
-- **SFX:** Describe the sound precisely — "heavy wooden door slamming in stone corridor with echo" not just "door slam"
+- **SFX:** Describe the sound precisely — include material, space, and reverb characteristics
 - **Voice:** Include emotional direction, pacing, and volume alongside the voice description
 - **Reference tracks** are more effective than adjectives — "sounds like [specific track] but more [quality]"
 
@@ -477,12 +459,10 @@ assets/<output>/<unit>/<descriptor>-<version>.<ext>
 
 Examples:
 ```
-assets/conti/ep-01/panel-03-fortress-dawn-v2.png
-assets/conti/ep-01/panel-07-voss-closeup-v1.png
-assets/scenario/act1-opening-sequence-v1.mp4
-assets/pitch/visual-tone-fortress-v1.jpg
-assets/audio/theme-main-v1.mp3
-assets/audio/sfx-door-slam-stone-v1.wav
+assets/conti/ep-NN/panel-NN-[descriptor]-vN.png
+assets/scenario/[scene-descriptor]-vN.mp4
+assets/pitch/[visual-descriptor]-vN.jpg
+assets/audio/[track-descriptor]-vN.mp3
 ```
 
 ### Manifest
@@ -490,7 +470,7 @@ assets/audio/sfx-door-slam-stone-v1.wav
 Every generated asset must have an entry in `assets/manifest.md` tracking:
 - **Source prompt fragments** — which prompt files were composed
 - **Composed prompt** — the full prompt as sent to the tool
-- **Tool and model** — which generator and version (e.g., Midjourney v6.1, Runway Gen-3)
+- **Tool and model** — which generator and version
 - **Parameters** — aspect ratio, style weight, seed, duration, etc.
 - **Date generated**
 - **Used in** — which output file references this asset
@@ -509,7 +489,7 @@ This enables reproducibility — you can regenerate any asset or create variatio
 7. Commit the prompt, asset, and manifest entry together
 
 ### Version Control for Assets
-- Use `-vN` suffix for iterations: `panel-03-fortress-dawn-v1.png`, `v2`, `v3`
+- Use `-vN` suffix for iterations: `[descriptor]-v1.png`, `v2`, `v3`
 - Keep only accepted versions in the repo — delete rejected iterations to save LFS storage
 - When replacing an asset, update its manifest entry and any output files that reference it
 
@@ -562,20 +542,20 @@ Scopes:
 
 Examples:
 ```
-draft: novel ch 07 - the siege begins
-draft: conti ep 03 - the wall falls
-revise: scenario act 1 - tighten opening sequence
-bible: add character sheet for commander voss
-outline: restructure act two, update output mapping
+draft: novel ch NN - [description]
+draft: conti ep NN - [description]
+revise: scenario act N - [description]
+bible: add character sheet for [name]
+outline: restructure [act/beat], update output mapping
 draft: pitch - first complete draft
-prompt: image - add character prompt for voss
-generate: conti ep 01 - panels 1-5 fortress establishing shots
-asset: audio - main theme v2
-prompt: video - add cinematic dolly style preset
+prompt: image - add character prompt for [name]
+generate: conti ep NN - panels N-N [description]
+asset: audio - [track name] vN
+prompt: video - add [style name] style preset
 ```
 
 ### Branching (Optional)
 
 For experimental rewrites or alternate directions:
-- `alt/<scope>/<description>` — alternate version (e.g., `alt/conti/ep-05-darker-ending`)
+- `alt/<scope>/<description>` — alternate version
 - `experiment/<description>` — exploratory work that may or may not be kept
