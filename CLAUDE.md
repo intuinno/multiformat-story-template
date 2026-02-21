@@ -60,6 +60,10 @@ prompts/               — PROMPT LIBRARY (composable fragments for AI generatio
     sfx/               — sound effect descriptions
     voice/             — per-character voice acting direction
 
+references/            — REFERENCE MATERIALS (tracked via Git LFS)
+  index.md             — file list with notes and sources
+  [prefix]-[NNN]-[description].[ext]
+
 assets/                — GENERATED MEDIA (tracked via Git LFS)
   conti/               — webtoon panel images (organized by episode)
     ep-NN/
@@ -447,6 +451,55 @@ The fragments are concatenated into a single prompt sent to the generation tool.
 
 ---
 
+## Reference Management
+
+외부에서 수집한 레퍼런스 자료(영화 스틸, 배우 사진, 무드보드, 아트 스타일 참고, 영상 클립 등)는 `references/` 폴더에 넣는다.
+생성 결과물(`assets/`)과는 구분된다 — 레퍼런스는 영감과 방향 설정을 위한 외부 자료다.
+
+### Naming Convention
+
+```
+[접두사]-[NNN]-[설명].[ext]
+```
+
+접두사로 파일명 소팅 시 용도별로 자동 그룹핑되고, 번호로 순서가 유지된다.
+
+| 접두사 | 용도 |
+|--------|------|
+| `char` | 캐릭터 비주얼 (얼굴, 체형, 의상) |
+| `mood` | 분위기/톤 (컬러 팔레트, 무드보드) |
+| `motion` | 모션/연출/카메라워크 (영상 클립) |
+| `setting` | 장소/배경 (건물, 거리, 자연) |
+| `style` | 아트 스타일/채색/선화 |
+
+예시:
+```
+char-001-주인공-얼굴참고.jpg
+char-002-주인공-전신.png
+mood-001-야경-골목길.png
+setting-001-폐건물-외관.jpg
+style-001-manhwa-채색참고.webp
+motion-001-액션-칼싸움.mp4
+```
+
+### Reference Workflow
+
+1. 레퍼런스 파일을 `references/`에 넣는다
+2. 파일명을 `[접두사]-[NNN]-[설명].[ext]` 형식으로 짓는다
+3. 필요하면 `references/index.md`에 출처와 참고 포인트를 메모한다
+4. 프롬프트 작성 시 레퍼런스를 참고하되, 프롬프트 파일(`prompts/`)에는 레퍼런스 파일을 직접 참조하지 않는다 — 프롬프트는 텍스트 기반으로 독립적이어야 한다
+
+### Reference vs Asset
+
+| | 레퍼런스 (`references/`) | 에셋 (`assets/`) |
+|---|---|---|
+| 출처 | 외부 수집 | 직접 생성 |
+| 용도 | 영감, 방향 설정 | 최종 결과물 |
+| 재현성 | 불필요 | manifest로 재현 가능 |
+| 네이밍 | `[접두사]-[NNN]-[설명]` | `[descriptor]-v[N]` |
+
+---
+
 ## Asset Management
 
 Generated media files (images, videos, audio) are stored in `assets/` and tracked by **Git LFS**.
@@ -645,6 +698,7 @@ Types:
 - `prompt` — new or updated prompt fragments
 - `asset` — new or updated generated media
 - `generate` — prompt + asset committed together (typical generation workflow)
+- `ref` — new or updated reference materials
 
 Scopes:
 - `novel` — novel chapter
@@ -655,6 +709,7 @@ Scopes:
 - `image` — image generation prompts/assets
 - `video` — video generation prompts/assets
 - `audio` — audio generation prompts/assets
+- `ref` — reference materials
 
 Examples:
 ```
@@ -668,6 +723,8 @@ prompt: image - add character prompt for [name]
 generate: conti ep NN - panels N-N [description]
 asset: audio - [track name] vN
 prompt: video - add [style name] style preset
+ref: add character reference images for [name]
+ref: add mood board for [scene/setting]
 ```
 
 ### Branching (Optional)
