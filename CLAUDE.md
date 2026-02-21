@@ -62,6 +62,7 @@ prompts/               — PROMPT LIBRARY (composable fragments for AI generatio
 
 references/            — REFERENCE MATERIALS (tracked via Git LFS)
   index.md             — file list with notes and sources
+  overview.md          — visual catalog (inline images for quick browsing)
   [prefix]-[NNN]-[description].[ext]
 
 assets/                — GENERATED MEDIA (tracked via Git LFS)
@@ -486,8 +487,21 @@ motion-001-액션-칼싸움.mp4
 
 1. 레퍼런스 파일을 `references/`에 넣는다
 2. 파일명을 `[접두사]-[NNN]-[설명].[ext]` 형식으로 짓는다
-3. 필요하면 `references/index.md`에 출처와 참고 포인트를 메모한다
-4. 프롬프트 작성 시 레퍼런스를 참고하되, 프롬프트 파일(`prompts/`)에는 레퍼런스 파일을 직접 참조하지 않는다 — 프롬프트는 텍스트 기반으로 독립적이어야 한다
+3. `references/index.md`에 출처와 참고 포인트를 메모한다
+4. `references/overview.md`에 이미지를 추가한다 — Obsidian에서 전체 레퍼런스를 한눈에 훑어볼 수 있는 비주얼 카탈로그
+5. 프롬프트 작성 시 레퍼런스를 참고하되, 프롬프트 파일(`prompts/`)에는 레퍼런스 파일을 직접 참조하지 않는다 — 프롬프트는 텍스트 기반으로 독립적이어야 한다
+
+### Overview Page
+
+`references/overview.md`는 모든 레퍼런스를 인라인 이미지로 보여주는 비주얼 카탈로그다.
+Obsidian에서 열면 이미지가 렌더링되어 전체 레퍼런스를 빠르게 훑어볼 수 있다.
+
+구성 규칙:
+- 접두사별로 섹션을 나눈다 (`## char`, `## mood`, `## setting` 등)
+- 캐릭터/장소별로 서브섹션을 만든다
+- 이미지는 3열 마크다운 테이블로 배치한다
+- 각 이미지 아래에 번호와 짧은 설명을 넣는다
+- 레퍼런스 추가/삭제 시 overview.md도 반드시 함께 업데이트한다
 
 ### Reference vs Asset
 
