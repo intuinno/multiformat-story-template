@@ -569,11 +569,24 @@ This enables reproducibility — you can regenerate any asset or create variatio
 **유료 API 노드(Flux2Pro, GPT Image, Ideogram, Gemini 등)는 사용하지 않는다.**
 
 ### Server Configuration
+
+4개 ComfyUI 인스턴스가 2대 머신에서 실행된다. 자동 로드밸런서로 여유있는 서버를 선택한다.
+
+| Machine | URL | GPU |
+|---------|-----|-----|
+| wright | `http://wright.gazelle-galaxy.ts.net:8188` | RTX 6000 Ada 48GB |
+| wright | `http://wright.gazelle-galaxy.ts.net:8199` | RTX 6000 Ada 48GB |
+| neumann | `http://neumann.gazelle-galaxy.ts.net:8188` | RTX 6000 Ada 48GB |
+| neumann | `http://neumann.gazelle-galaxy.ts.net:8199` | RTX 6000 Ada 48GB |
+
+**서버 선택 스크립트:**
+```bash
+python scripts/comfyui_server.py status   # 전체 서버 상태 확인
+python scripts/comfyui_server.py best     # 가장 여유있는 서버 URL 출력
 ```
-ComfyUI URL: http://wright.gazelle-galaxy.ts.net:8188/
-GPU: NVIDIA RTX 6000 Ada (48GB VRAM) × 2
-Disk: 3.7TB (models ~80GB 사용 중)
-```
+
+스크립트는 `/queue` API로 각 서버의 running + pending 작업 수를 확인하여 가장 여유있는 서버를 선택한다.
+Python stdlib만 사용하므로 추가 설치 불필요.
 
 ### Available Local Models — Image
 
