@@ -67,8 +67,13 @@ references/            — REFERENCE MATERIALS (tracked via Git LFS)
     [prefix]-[NNN]-[description].[ext]
 
 assets/                — GENERATED MEDIA (tracked via Git LFS)
-  conti/               — webtoon panel images (organized by episode)
+  keyart/              — key art / concept art images
+  sketch/              — model comparison sketches
+  webtoon/             — webtoon panel images (organized by episode)
     ep-NN/
+  conti/               — conti storyboard images (organized by episode)
+    ep-NN/
+  video/               — generated video clips
   scenario/            — movie clip videos
   pitch/               — pitch deck visuals and trailer clips
   audio/               — music, SFX, voice tracks
@@ -521,17 +526,37 @@ Generated media files (images, videos, audio) are stored in `assets/` and tracke
 The `.gitattributes` file is pre-configured to track all common media formats.
 
 ### Asset Naming Convention
+
+**파일명으로 프롬프트 추적이 가능해야 한다.**
+파일명의 각 세그먼트가 `prompts/` 라이브러리의 프롬프트 파일에 직접 매핑된다.
+
 ```
-assets/<output>/<unit>/<descriptor>-<version>.<ext>
+assets/<category>/<char>-<setting>-<style>-v<N>.<ext>
 ```
+
+세그먼트 매핑:
+- `<char>` → `prompts/image/characters/<char>.md`
+- `<setting>` → `prompts/image/settings/<setting>.md`
+- `<style>` → `prompts/image/styles/<style>.md`
+- `-v<N>` → 버전 번호 (같은 프롬프트의 반복 생성)
 
 Examples:
 ```
+assets/keyart/dongsu-office-cinematic-v1.png
+assets/webtoon/ep-01/dongsu-office-manhwa-v1.png
 assets/conti/ep-NN/panel-NN-[descriptor]-vN.png
+assets/video/clip01-office-comedy-hunyuan15i2v-v1.mp4
 assets/scenario/[scene-descriptor]-vN.mp4
 assets/pitch/[visual-descriptor]-vN.jpg
 assets/audio/[track-descriptor]-vN.mp3
 ```
+
+파일명만 보고 프롬프트를 찾는 예시:
+`dongsu-office-cinematic-v1.png` →
+- `prompts/image/characters/dongsu.md` (캐릭터 외모)
+- `prompts/image/settings/office.md` (사무실 배경)
+- `prompts/image/styles/cinematic.md` (영화적 스타일)
+- `assets/manifest.md`의 해당 항목에서 조합된 최종 프롬프트, seed, 파라미터 확인
 
 ### Manifest
 
@@ -568,69 +593,97 @@ This enables reproducibility — you can regenerate any asset or create variatio
 이미지/비디오 생성은 ComfyUI 서버의 REST API를 통해 수행한다. 모든 모델은 로컬 GPU에서 실행된다 (무료).
 **유료 API 노드(Flux2Pro, GPT Image, Ideogram, Gemini 등)는 사용하지 않는다.**
 
-### Server Configuration
+### Server Configuration (4 ComfyUI Servers)
 
-4개 ComfyUI 인스턴스가 2대 머신에서 실행된다. 자동 로드밸런서로 여유있는 서버를 선택한다.
+4개 서버를 동시에 사용하여 병렬 생성이 가능하다.
+각 서버는 RTX 6000 Ada (48GB VRAM) 1장을 사용한다.
 
-| Machine | URL | GPU |
-|---------|-----|-----|
-| wright | `http://wright.gazelle-galaxy.ts.net:8188` | RTX 6000 Ada 48GB |
-| wright | `http://wright.gazelle-galaxy.ts.net:8199` | RTX 6000 Ada 48GB |
-| neumann | `http://neumann.gazelle-galaxy.ts.net:8188` | RTX 6000 Ada 48GB |
-| neumann | `http://neumann.gazelle-galaxy.ts.net:8199` | RTX 6000 Ada 48GB |
+| Server | URL | GPU | 주요 모델 |
+|--------|-----|-----|----------|
+| **wright-a** | `wright.gazelle-galaxy.ts.net:8188` | RTX 6000 Ada | FLUX, SD3.5, z_turbo, Wan I2V MoE, HunyuanVideo 1.5 |
+| **wright-b** | `wright.gazelle-galaxy.ts.net:8189` | RTX 6000 Ada | (wright-a와 동일) |
+| **neumann-a** | `neumann.gazelle-galaxy.ts.net:8188` | RTX 6000 Ada | FLUX, SDXL (Juggernaut, RealVis, DreamShaper, Animagine) |
+| **neumann-b** | `neumann.gazelle-galaxy.ts.net:8189` | RTX 6000 Ada | (neumann-a와 동일) |
 
-**서버 선택 스크립트:**
+**서버 자동 선택:** `--server` 미지정 시, 스크립트가 호환 서버의 큐를 확인하여 가장 한가한 서버를 자동 선택한다.
+
+**서버 상태 확인:**
 ```bash
-python scripts/comfyui_server.py status   # 전체 서버 상태 확인
-python scripts/comfyui_server.py best     # 가장 여유있는 서버 URL 출력
+python3 scripts/generate_api.py servers
 ```
-
-스크립트는 `/queue` API로 각 서버의 running + pending 작업 수를 확인하여 가장 여유있는 서버를 선택한다.
-Python stdlib만 사용하므로 추가 설치 불필요.
 
 ### Available Local Models — Image
 
-| Model | Type | Steps | Quality | Speed | Best For |
-|-------|------|-------|---------|-------|----------|
-| **FLUX.1 Dev** | UNet + DualCLIP | 20 | ★★★★★ | 보통 | 최고 품질 포토리얼 키아트 |
-| **FLUX.1 Schnell** | UNet + DualCLIP | 4 | ★★★★ | 빠름 | 빠른 반복 실험, 초안 |
-| **SD3.5 Large** | Checkpoint | 28 | ★★★★ | 보통 | 스타일리시한 영화 포스터풍 |
-| **z_image_turbo** | UNet + CLIP | 8 | ★★★ | 매우 빠름 | 웹툰 패널, 빠른 프로토타입 |
+| Model ID | Label | Steps | Server | Best For |
+|----------|-------|-------|--------|----------|
+| `flux-dev` | FLUX.1 Dev | 20 | all | 최고 품질 포토리얼 |
+| `flux-dev-lora` | FLUX.1 Dev + Realism LoRA | 20 | all | 포토리얼 극강 (피부/조명/질감) |
+| `flux-schnell` | FLUX.1 Schnell | 4 | all | 빠른 반복 실험 |
+| `sd35` | SD3.5 Large | 28 | wright | 영화 포스터풍 |
+| `juggernaut-xl` | Juggernaut XL v9 | 25 | neumann | 포토리얼 SDXL |
+| `realvis-xl` | RealVisXL V4.0 | 25 | neumann | 사실적 인물 |
+| `dreamshaperxl` | DreamShaper XL Turbo | 25 | neumann | 아트 스타일 |
+| `animagine-xl` | Animagine XL 3.1 | 25 | neumann | 애니메이션 |
+| `z-turbo` | z_image_turbo | 8 | wright | 웹툰, 빠른 프로토타입 |
 
 ### Available Local Models — Video
 
-| Model | Type | Best For |
-|-------|------|----------|
-| **Wan 2.2 I2V 14B** | Image-to-Video | 키아트 이미지에 모션 추가 |
-| **Wan 2.2 Lightning LoRA** | 가속 LoRA | 4스텝으로 빠른 비디오 생성 |
+| Model ID | Label | Steps | FPS | Size | Server | Best For |
+|----------|-------|-------|-----|------|--------|----------|
+| `wan-i2v` | Wan 2.2 I2V 14B MoE | 20 | 16 | 832x480 | wright | 고품질 비디오 (듀얼 전문가) |
+| `wan-i2v-rife` | Wan 2.2 I2V 14B MoE + RIFE 2x | 20 | 32 | 832x480 | wright | 부드러운 고품질 비디오 |
+| `hunyuan15-i2v` | HunyuanVideo 1.5 I2V | 20 | 24 | 848x480 | wright | 시간적 일관성 최고 |
+| `hunyuan15-i2v-rife` | HunyuanVideo 1.5 + RIFE 2x | 20 | 48 | 848x480 | wright | 초고FPS 비디오 |
+
+**Wan 2.2 I2V MoE 아키텍처:** Wan I2V 14B는 단일 모델이 아닌 **Mixture of Experts (MoE)** 듀얼 전문가 구조이다.
+High-noise expert가 초기 디노이징 (전체 구도/레이아웃), low-noise expert가 후기 디노이징 (디테일 정제)을 담당한다.
+두 모델은 KSamplerAdvanced로 체이닝되어 순차적으로 실행된다 (steps 0→half: high noise, half→end: low noise).
+ModelSamplingSD3 shift=8.0, cfg=3.5가 공식 기본값이다. CLIPVision은 사용하지 않는다.
 
 ### Model Files (설치 경로)
 
 ```
 models/diffusion_models/
-  flux1-dev-fp8.safetensors          (17GB)  — FLUX.1 Dev
-  flux1-schnell-fp8.safetensors      (17GB)  — FLUX.1 Schnell
-  z_image_turbo_bf16.safetensors     (12GB)  — z_image_turbo (Lumina2 기반)
-  wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors (14GB) — Wan 2.2 I2V (high noise)
-  wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors  (14GB) — Wan 2.2 I2V (low noise)
+  flux1-dev-fp8.safetensors                         (17GB)  — FLUX.1 Dev
+  flux1-schnell-fp8.safetensors                     (17GB)  — FLUX.1 Schnell
+  z_image_turbo_bf16.safetensors                    (12GB)  — z_image_turbo (Lumina2 기반)
+  wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors  (14GB)  — Wan 2.2 MoE High Noise Expert
+  wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors   (14GB)  — Wan 2.2 MoE Low Noise Expert
+  hunyuanvideo1.5_720p_i2v_cfg_distilled_fp8_scaled.safetensors (8.3GB) — HunyuanVideo 1.5 I2V
 
 models/checkpoints/
-  sd3.5_large_fp8_scaled.safetensors (14GB)  — SD3.5 Large (all-in-one)
+  sd3.5_large_fp8_scaled.safetensors                (14GB)  — SD3.5 Large (all-in-one)
 
 models/text_encoders/
-  clip_l.safetensors                 (235MB) — CLIP-L (FLUX용)
-  t5xxl_fp8_e4m3fn_scaled.safetensors(4.9GB) — T5-XXL (FLUX용)
-  qwen_3_4b.safetensors              (7.5GB) — Qwen 3 4B (z_image_turbo용)
-  umt5_xxl_fp8_e4m3fn_scaled.safetensors(6.3GB) — UMT5-XXL (Wan 비디오용)
+  clip_l.safetensors                                (235MB) — CLIP-L (FLUX용)
+  t5xxl_fp8_e4m3fn_scaled.safetensors               (4.9GB) — T5-XXL (FLUX용)
+  qwen_3_4b.safetensors                             (7.5GB) — Qwen 3 4B (z_image_turbo용)
+  umt5_xxl_fp8_e4m3fn_scaled.safetensors            (6.3GB) — UMT5-XXL (Wan 비디오용)
+  qwen_2.5_vl_7b_fp8_scaled.safetensors             (9.4GB) — HunyuanVideo 텍스트 인코더
+  byt5_small_glyphxl_fp16.safetensors               (419MB) — HunyuanVideo byt5 인코더
 
 models/vae/
-  ae.safetensors                     (320MB) — VAE (FLUX, z_image_turbo 공유)
-  wan_2.1_vae.safetensors            (243MB) — VAE (Wan 비디오용)
+  ae.safetensors                                    (320MB) — VAE (FLUX, z_image_turbo 공유)
+  wan_2.1_vae.safetensors                           (243MB) — VAE (Wan 비디오용)
+  hunyuanvideo15_vae_fp16.safetensors               (2.4GB) — HunyuanVideo VAE
+
+models/clip_vision/
+  sigclip_vision_patch14_384.safetensors             (817MB) — HunyuanVideo CLIP Vision
 
 models/loras/
-  Wan2.2-Lightning_I2V-A14B-4steps-lora_HIGH_fp16.safetensors (586MB)
-  Wan2.2-Lightning_I2V-A14B-4steps-lora_LOW_fp16.safetensors  (586MB)
+  flux-realism-lora.safetensors                     (22MB)  — 포토리얼리즘 LoRA
+
+models/controlnet/
+  flux-dev-controlnet-union-pro.safetensors          (6.2GB) — Flux ControlNet (7가지 모드)
+
+models/upscale_models/
+  4x-UltraSharp.pth                                 (64MB)  — ESRGAN 4x 업스케일러
+
+custom_nodes/ComfyUI-Frame-Interpolation/ckpts/rife/
+  rife47.pth / rife49.pth                           (21MB)  — RIFE 프레임 보간 모델
 ```
+
+**설치 서버:** wright-a, wright-b (Wan MoE, HunyuanVideo 1.5, RIFE 모두 설치) + neumann-a, neumann-b (SDXL 모델)
 
 ### ComfyUI Workflow 구성 — Image
 
@@ -662,14 +715,170 @@ UNETLoader(z_image_turbo_bf16)
   → VAEDecode(ae.safetensors) → SaveImage
 ```
 
+### ComfyUI Workflow 구성 — Video
+
+**Wan 2.2 I2V 14B MoE (듀얼 전문가):**
+```
+UNETLoader(high_noise_14B) + UNETLoader(low_noise_14B)
+  → ModelSamplingSD3(shift=8.0) × 2 (각 모델에 적용)
+  → CLIPLoader(umt5_xxl, type=wan) → CLIPTextEncode (positive + negative)
+  → LoadImage → WanImageToVideo(width=832, height=480, length=81)
+  → KSamplerAdvanced(high_noise, steps=20, cfg=3.5, start=0, end=10, noise=enable)
+  → KSamplerAdvanced(low_noise, steps=20, cfg=3.5, start=10, end=10000, noise=disable)
+  → VAEDecode(wan_2.1_vae) → [optional: RIFE VFI] → SaveAnimatedWEBP / VHS_VideoCombine
+```
+
+**HunyuanVideo 1.5 I2V:**
+```
+UNETLoader(hunyuanvideo1.5_i2v_cfg_distilled)
+  → DualCLIPLoader(qwen_2.5_vl + byt5, type=hunyuan_video)
+  → TextEncodeHunyuanVideo_ImageToVideo(prompt, src_image)
+  → EmptyHunyuanLatentVideo(width=848, height=480, length=33)
+  → KSampler(steps=20, cfg=1.0, sampler=euler, scheduler=simple)
+  → VAEDecode(hunyuanvideo15_vae) → [optional: RIFE VFI] → VHS_VideoCombine
+```
+
+### Generation Scripts
+
+**`scripts/generate_api.py`** — 멀티 서버, 멀티 모델 생성 스크립트
+
+```bash
+# 서버 상태 확인
+python3 scripts/generate_api.py servers
+
+# 단일 이미지 생성 (assets/sketch/에 저장)
+python3 scripts/generate_api.py image \
+  --model flux-dev --name test --seed 42 \
+  --prompt "..."
+
+# 스케치: 같은 프롬프트로 모든 모델 병렬 생성 (4서버 동시 사용)
+python3 scripts/generate_api.py sketch \
+  --name test --seed 42 \
+  --prompt "..."
+
+# 특정 모델만 스케치
+python3 scripts/generate_api.py sketch \
+  --models "flux-dev,juggernaut-xl,realvis-xl" \
+  --name test --seed 42 --prompt "..."
+
+# Wan 2.2 I2V MoE (듀얼 전문가, 832x480, 16fps, 5.1초)
+python3 scripts/generate_api.py video \
+  --model wan-i2v --source path/to/image.png \
+  --name clip-01 --seed 42 --prompt "motion description"
+
+# Wan 2.2 I2V MoE + RIFE (32fps, 부드러운 모션)
+python3 scripts/generate_api.py video \
+  --model wan-i2v-rife --source path/to/image.png \
+  --name clip-01 --seed 42 --prompt "motion description"
+
+# HunyuanVideo 1.5 (848x480, 24fps, 시간적 일관성 최고)
+python3 scripts/generate_api.py video \
+  --model hunyuan15-i2v --source path/to/image.png \
+  --name clip-01 --seed 42 --prompt "motion description"
+
+# 서버 수동 지정 (기본: 자동 선택)
+python3 scripts/generate_api.py video \
+  --model wan-i2v --server wright-a --source path/to/image.png \
+  --name clip-01 --seed 42 --prompt "motion description"
+
+# SeedVR2 비디오 업스케일 (기존 비디오 → 1080p+)
+python3 scripts/generate_api.py video-enhance \
+  --source assets/video/clip-01-v1.mp4 \
+  --name clip-01 --resolution 1080
+
+# 멀티패스: Flux+LoRA → 4x 업스케일 → img2img 정제 (2560x1440 최종)
+python3 scripts/generate_api.py multipass \
+  --name scene-01 --seed 42 \
+  --prompt "..." \
+  --width 2560 --height 1440 --denoise 0.35
+
+# 4x UltraSharp 업스케일 (기존 이미지)
+python3 scripts/generate_api.py upscale \
+  --source assets/sketch/scene-01-base-v1.png \
+  --name scene-01 --width 2560 --height 1440
+
+# ControlNet (참조 이미지 기반 구도 유지 재생성)
+python3 scripts/generate_api.py controlnet \
+  --source reference.png --prompt "..." \
+  --name scene-01 --cn-strength 0.6
+```
+
+**`sketch` 커맨드는 모든 이미지 모델을 4개 서버에 분산하여 동시 생성한다.**
+결과는 `assets/sketch/`에 `{name}-{model}-v{N}.png` 형식으로 저장된다.
+
+### Multi-Pass Workflow (Midjourney 이상의 품질)
+
+`multipass` 커맨드는 3단계 파이프라인을 하나의 ComfyUI 워크플로로 실행한다:
+
+1. **Base Generation** — Flux Dev + flux-realism-lora (1280x720, 20 steps)
+   - Realism LoRA가 피부 질감, 조명, 디테일을 강화
+2. **4x UltraSharp Upscale** — 픽셀 공간에서 5120x2880으로 업스케일 → lanczos로 최종 크기
+   - ESRGAN 기반 업스케일러, 엣지를 선명하게 유지
+3. **Img2img Refinement** — 업스케일된 이미지를 낮은 denoise(0.35)로 정제
+   - 고해상도에서 세부 디테일 추가, 전체 구도 유지
+
+**파라미터 가이드:**
+- `--lora-strength 0.8` — LoRA 강도 (0.6~1.0, 높을수록 리얼리즘 강화)
+- `--denoise 0.35` — 정제 강도 (0.2~0.5, 높을수록 변화 큼, 0.3~0.4 권장)
+- `--width 2560 --height 1440` — 최종 해상도 (2K 기본값)
+
+**ControlNet 워크플로:**
+- 참조 이미지에서 Canny 엣지를 추출하여 구도를 유지하면서 재생성
+- `flux-dev-controlnet-union-pro` 모델 사용 (7가지 컨트롤 모드 지원)
+- `--cn-type` 옵션: canny, depth, openpose, tile, segment 등
+
+### Video Enhancement Pipeline
+
+비디오 품질 향상을 위한 도구:
+
+1. **RIFE Frame Interpolation** — 프레임 보간으로 FPS 2배 (16→32fps 또는 24→48fps)
+   - `-rife` 접미사 모델 사용: `wan-i2v-rife`, `hunyuan15-i2v-rife`
+   - 비디오 생성과 동시에 실행 (단일 워크플로)
+2. **SeedVR2 Video Upscaler** — AI 기반 비디오 해상도 업스케일
+   - `video-enhance` 커맨드로 기존 비디오 후처리
+   - 3B (빠름) 또는 7B-sharp (고품질) 모델 선택 가능
+
+### Multi-Server Queue-Aware Selection
+
+`--server` 미지정 시, 스크립트가 자동으로 가장 한가한 서버를 선택한다:
+1. 모델에 호환되는 서버 목록을 확인 (비디오: wright-a/wright-b, 이미지: all 4)
+2. 각 서버의 `/queue` API를 호출하여 running + pending 작업 수를 확인
+3. 큐가 가장 짧은 서버를 선택
+4. 서버가 모두 다운된 경우 에러 발생
+
+수동 지정: `--server wright-a` 또는 `--server neumann-b`
+
 ### Model Selection Guide
 
-- **키아트 최종본** → FLUX.1 Dev (20 steps, 가장 높은 프롬프트 충실도)
-- **키아트 초안/반복 실험** → FLUX.1 Schnell (4 steps, 5배 빠름)
-- **스타일리시한 포스터** → SD3.5 Large (독특한 미학, 영화 포스터풍)
-- **웹툰 패널** → z_image_turbo (가장 빠름, manhwa 스타일에 적합)
-- **비디오 클립** → Wan 2.2 I2V (키아트 이미지 기반 모션 생성)
-- **여러 모델 비교** → 같은 프롬프트+시드로 복수 모델 실행 후 비교 선택
+**이미지:**
+- **최고 품질 (Midjourney 대항)** → `multipass` (Flux+LoRA → 4x upscale → img2img)
+- **키아트 최종본** → FLUX.1 Dev + Realism LoRA (`flux-dev-lora`)
+- **키아트 초안** → FLUX.1 Schnell (4 steps, 5배 빠름)
+- **구도 유지 재생성** → `controlnet` (참조 이미지 + Canny/Depth)
+- **기존 이미지 고해상도화** → `upscale` (4x UltraSharp)
+- **영화 포스터** → SD3.5 Large (독특한 미학)
+- **포토리얼 인물** → Juggernaut XL 또는 RealVisXL (SDXL 기반)
+- **아트/일러스트** → DreamShaper XL (스타일리시)
+- **애니메이션** → Animagine XL (anime/manhwa)
+- **웹툰 패널** → z_image_turbo (가장 빠름)
+- **모델 비교** → `sketch` 커맨드로 전체 모델 동시 비교
+
+**비디오:**
+- **최고 시간적 일관성** → `hunyuan15-i2v` (HunyuanVideo 1.5, 떨림 없는 안정적 출력)
+- **스타일리시한 모션** → `wan-i2v` (MoE 듀얼 전문가 14B, 역동적 모션)
+- **부드러운 고품질** → `wan-i2v-rife` (MoE 14B + RIFE 32fps)
+- **초고FPS** → `hunyuan15-i2v-rife` (HunyuanVideo + RIFE 48fps)
+- **비디오 업스케일** → `video-enhance` (SeedVR2, 기존 비디오 → 1080p+)
+- **모델 비교** → 같은 소스로 `wan-i2v` + `hunyuan15-i2v` 둘 다 생성 후 비교 권장
+
+### Image Size Presets
+
+| Category | Size | 용도 |
+|----------|------|------|
+| keyart | 1280x720 | 16:9 와이드 키아트, 배너 |
+| keyart-poster | 720x1280 | 세로 포스터 |
+| webtoon | 768x1024 | 웹툰 패널 (세로 스크롤) |
+| webtoon-square | 1024x1024 | 정사각 패널 |
 
 ### Image Size Presets
 
@@ -684,11 +893,15 @@ UNETLoader(z_image_turbo_bf16)
 
 HuggingFace에서 ComfyUI 호환 모델을 다운로드하여 서버에 설치:
 ```bash
-ssh wright.gazelle-galaxy.ts.net
+# SSH로 서버 접속
+ssh wright.gazelle-galaxy.ts.net   # 또는 neumann.gazelle-galaxy.ts.net
+
+# 모델 다운로드 (예: diffusion model)
 cd ~/codegit/ComfyUI/models/diffusion_models/
 wget https://huggingface.co/<org>/<repo>/resolve/main/<model>.safetensors
 ```
 모델 추가 후 ComfyUI 재시작 없이 API 호출 시 자동 인식된다.
+`scripts/generate_api.py`의 `IMAGE_MODELS` 또는 `VIDEO_MODELS` dict에 새 모델을 등록한다.
 
 ---
 
