@@ -63,7 +63,8 @@ prompts/               — PROMPT LIBRARY (composable fragments for AI generatio
 references/            — REFERENCE MATERIALS (tracked via Git LFS)
   index.md             — file list with notes and sources
   overview.md          — visual catalog (inline images for quick browsing)
-  [prefix]-[NNN]-[description].[ext]
+  images/              — actual reference files
+    [prefix]-[NNN]-[description].[ext]
 
 assets/                — GENERATED MEDIA (tracked via Git LFS)
   conti/               — webtoon panel images (organized by episode)
@@ -485,7 +486,7 @@ motion-001-액션-칼싸움.mp4
 
 ### Reference Workflow
 
-1. 레퍼런스 파일을 `references/`에 넣는다
+1. 레퍼런스 파일을 `references/images/`에 넣는다
 2. 파일명을 `[접두사]-[NNN]-[설명].[ext]` 형식으로 짓는다
 3. `references/index.md`에 출처와 참고 포인트를 메모한다
 4. `references/overview.md`에 이미지를 추가한다 — Obsidian에서 전체 레퍼런스를 한눈에 훑어볼 수 있는 비주얼 카탈로그
