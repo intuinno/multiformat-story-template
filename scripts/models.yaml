@@ -1,0 +1,107 @@
+# ComfyUI Model Manifest — Single Source of Truth
+# All servers should have these models installed.
+# Use `python scripts/model_sync.py` to check and sync.
+
+diffusion_models:
+  - name: flux1-dev-fp8.safetensors
+    url: https://huggingface.co/Comfy-Org/flux1-dev/resolve/main/flux1-dev-fp8.safetensors
+    size_gb: 17
+
+  - name: flux1-schnell-fp8.safetensors
+    url: https://huggingface.co/Comfy-Org/flux1-schnell/resolve/main/flux1-schnell-fp8.safetensors
+    size_gb: 17
+
+  - name: z_image_turbo_bf16.safetensors
+    url: https://huggingface.co/Kijai/z-image-turbo-comfyui/resolve/main/z_image_turbo_bf16.safetensors
+    size_gb: 12
+
+  - name: wan2.2_i2v_high_noise_14B_fp16.safetensors
+    url: https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp16.safetensors
+    size_gb: 28.6
+
+  - name: wan2.2_i2v_low_noise_14B_fp16.safetensors
+    url: https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp16.safetensors
+    size_gb: 28.6
+
+  - name: hunyuanvideo1.5_720p_i2v_cfg_distilled_fp8_scaled.safetensors
+    url: https://huggingface.co/Comfy-Org/HunyuanVideo_repackaged/resolve/main/split_files/diffusion_models/hunyuanvideo1.5_720p_i2v_cfg_distilled_fp8_scaled.safetensors
+    size_gb: 8.3
+
+checkpoints:
+  - name: sd3.5_large_fp8_scaled.safetensors
+    url: https://huggingface.co/Comfy-Org/stable-diffusion-3.5-fp8/resolve/main/sd3.5_large_fp8_scaled.safetensors
+    size_gb: 14
+
+  - name: Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors
+    url: https://huggingface.co/RunDiffusion/Juggernaut-XL-v9/resolve/main/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors
+    size_gb: 6.5
+
+  - name: RealVisXL_V4.0.safetensors
+    url: https://huggingface.co/SG161222/RealVisXL_V4.0/resolve/main/RealVisXL_V4.0.safetensors
+    size_gb: 6.5
+
+  - name: DreamShaperXL_Turbo_v2_1.safetensors
+    url: https://huggingface.co/Lykon/dreamshaper-xl-v2-turbo/resolve/main/DreamShaperXL_Turbo_v2_1.safetensors
+    size_gb: 6.5
+
+  - name: animagine-xl-3.1.safetensors
+    url: https://huggingface.co/cagliostrolab/animagine-xl-3.1/resolve/main/animagine-xl-3.1.safetensors
+    size_gb: 6.5
+
+text_encoders:
+  - name: clip_l.safetensors
+    url: https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors
+    size_gb: 0.2
+
+  - name: t5xxl_fp8_e4m3fn_scaled.safetensors
+    url: https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn_scaled.safetensors
+    size_gb: 4.9
+
+  - name: qwen_3_4b.safetensors
+    url: https://huggingface.co/Kijai/z-image-turbo-comfyui/resolve/main/qwen_3_4b.safetensors
+    size_gb: 7.5
+
+  - name: umt5_xxl_fp8_e4m3fn_scaled.safetensors
+    url: https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+    size_gb: 6.3
+
+  - name: qwen_2.5_vl_7b_fp8_scaled.safetensors
+    url: https://huggingface.co/Comfy-Org/HunyuanVideo_repackaged/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors
+    size_gb: 9.4
+
+  - name: byt5_small_glyphxl_fp16.safetensors
+    url: https://huggingface.co/Comfy-Org/HunyuanVideo_repackaged/resolve/main/split_files/text_encoders/byt5_small_glyphxl_fp16.safetensors
+    size_gb: 0.4
+
+vae:
+  - name: ae.safetensors
+    url: https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors
+    size_gb: 0.3
+
+  - name: wan_2.1_vae.safetensors
+    url: https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors
+    size_gb: 0.2
+
+  - name: hunyuanvideo15_vae_fp16.safetensors
+    url: https://huggingface.co/Comfy-Org/HunyuanVideo_repackaged/resolve/main/split_files/vae/hunyuanvideo15_vae_fp16.safetensors
+    size_gb: 2.4
+
+clip_vision:
+  - name: sigclip_vision_patch14_384.safetensors
+    url: https://huggingface.co/Comfy-Org/sigclip_vision_384/resolve/main/sigclip_vision_patch14_384.safetensors
+    size_gb: 0.8
+
+loras:
+  - name: flux-realism-lora.safetensors
+    url: https://huggingface.co/comfyanonymous/flux_RealismLora_converted_comfyui/resolve/main/flux_realism_lora.safetensors
+    size_gb: 0.02
+
+controlnet:
+  - name: flux-dev-controlnet-union-pro.safetensors
+    url: https://huggingface.co/Shakker-Labs/FLUX.1-dev-ControlNet-Union-Pro/resolve/main/diffusion_pytorch_model.safetensors
+    size_gb: 6.2
+
+upscale_models:
+  - name: 4x-UltraSharp.pth
+    url: https://huggingface.co/Kim2091/UltraSharp/resolve/main/4x-UltraSharp.pth
+    size_gb: 0.06

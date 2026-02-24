@@ -647,8 +647,8 @@ models/diffusion_models/
   flux1-dev-fp8.safetensors                         (17GB)  — FLUX.1 Dev
   flux1-schnell-fp8.safetensors                     (17GB)  — FLUX.1 Schnell
   z_image_turbo_bf16.safetensors                    (12GB)  — z_image_turbo (Lumina2 기반)
-  wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors  (14GB)  — Wan 2.2 MoE High Noise Expert
-  wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors   (14GB)  — Wan 2.2 MoE Low Noise Expert
+  wan2.2_i2v_high_noise_14B_fp16.safetensors         (28.6GB) — Wan 2.2 MoE High Noise Expert (FP16)
+  wan2.2_i2v_low_noise_14B_fp16.safetensors          (28.6GB) — Wan 2.2 MoE Low Noise Expert (FP16)
   hunyuanvideo1.5_720p_i2v_cfg_distilled_fp8_scaled.safetensors (8.3GB) — HunyuanVideo 1.5 I2V
 
 models/checkpoints/
@@ -902,6 +902,37 @@ wget https://huggingface.co/<org>/<repo>/resolve/main/<model>.safetensors
 ```
 모델 추가 후 ComfyUI 재시작 없이 API 호출 시 자동 인식된다.
 `scripts/generate_api.py`의 `IMAGE_MODELS` 또는 `VIDEO_MODELS` dict에 새 모델을 등록한다.
+**모델 추가 후 반드시 `scripts/models.yaml`에도 등록한다** (아래 Model Sync 참고).
+
+### Model Sync — 서버 간 모델 동기화
+
+두 서버(wright, neumann)의 모델을 동일하게 유지하기 위한 도구.
+`scripts/models.yaml`이 single source of truth이다.
+
+```bash
+# 각 서버의 현재 모델 목록 조회
+python scripts/model_sync.py status
+
+# manifest에 있는데 서버에 없는 모델 표시
+python scripts/model_sync.py diff
+
+# 누락된 모델을 서버에 직접 다운로드 (SSH + wget)
+python scripts/model_sync.py sync
+
+# manifest에 없는 모델 표시 (정리 대상)
+python scripts/model_sync.py orphans
+```
+
+**모델 추가 워크플로:**
+1. `scripts/models.yaml`에 새 모델 엔트리 추가 (name, url, size_gb)
+2. `python scripts/model_sync.py diff` — 누락 확인
+3. `python scripts/model_sync.py sync` — 다운로드
+4. `scripts/generate_api.py`에 모델 등록
+
+**모델 삭제 워크플로:**
+1. `scripts/models.yaml`에서 해당 엔트리 제거
+2. `python scripts/model_sync.py orphans` — 잔여 파일 확인
+3. SSH로 서버에 접속하여 수동 삭제
 
 ---
 
