@@ -320,46 +320,77 @@ def workflow_z_turbo(prompt, width, height, seed):
     }
 
 
-def workflow_wan_i2v(motion_prompt, image_filename, seed):
-    """Wan 2.2 I2V low-noise model: 20 steps, 49 frames at 16fps (~3s). No Lightning LoRA."""
+def workflow_wan_i2v(motion_prompt, image_filename, seed, steps=20, length=49):
+    """Wan 2.2 I2V 14B — official dual-expert MoE workflow.
+
+    Uses BOTH high-noise and low-noise models with two-pass KSamplerAdvanced:
+      Pass 1 (steps 0 to steps/2): High Noise expert — overall layout
+      Pass 2 (steps/2 to steps):   Low Noise expert — detail refinement
+    ModelSamplingSD3 shift=8.0 applied to both models. CFG=3.5 (official default).
+    No CLIPVision — source image passed directly to WanImageToVideo.
+    """
+    half_steps = steps // 2
+    neg_prompt = (
+        "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，"
+        "最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，"
+        "画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，"
+        "杂乱的背景，三条腿，背景人很多，倒着走"
+    )
     return {
+        # Load both expert models
         "1": {"class_type": "UNETLoader", "inputs": {
+            "unet_name": "wan2.2_i2v_high_noise_14B_fp16.safetensors",
+            "weight_dtype": "default",
+        }},
+        "2": {"class_type": "UNETLoader", "inputs": {
             "unet_name": "wan2.2_i2v_low_noise_14B_fp16.safetensors",
             "weight_dtype": "default",
         }},
-        "3": {"class_type": "CLIPLoader", "inputs": {
-            "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
-            "type": "wan",
+        # ModelSamplingSD3 shift=8.0 for both
+        "3": {"class_type": "ModelSamplingSD3", "inputs": {"model": ["1", 0], "shift": 8.0}},
+        "4": {"class_type": "ModelSamplingSD3", "inputs": {"model": ["2", 0], "shift": 8.0}},
+        # Text encoder + VAE
+        "5": {"class_type": "CLIPLoader", "inputs": {
+            "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors", "type": "wan",
         }},
-        "4": {"class_type": "CLIPTextEncode", "inputs": {
-            "text": motion_prompt, "clip": ["3", 0],
+        "6": {"class_type": "VAELoader", "inputs": {"vae_name": "wan_2.1_vae.safetensors"}},
+        # Prompts
+        "7": {"class_type": "CLIPTextEncode", "inputs": {
+            "text": motion_prompt, "clip": ["5", 0],
         }},
-        "5": {"class_type": "CLIPTextEncode", "inputs": {
-            "text": "", "clip": ["3", 0],
+        "8": {"class_type": "CLIPTextEncode", "inputs": {
+            "text": neg_prompt, "clip": ["5", 0],
         }},
-        "6": {"class_type": "VAELoader", "inputs": {
-            "vae_name": "wan_2.1_vae.safetensors",
+        # Source image
+        "9": {"class_type": "LoadImage", "inputs": {"image": image_filename}},
+        # WanImageToVideo — no CLIPVision, direct image input
+        "10": {"class_type": "WanImageToVideo", "inputs": {
+            "positive": ["7", 0], "negative": ["8", 0], "vae": ["6", 0],
+            "width": 832, "height": 480, "length": length, "batch_size": 1,
+            "start_image": ["9", 0],
         }},
-        "7": {"class_type": "LoadImage", "inputs": {
-            "image": image_filename,
+        # Pass 1: High Noise expert (steps 0 → half_steps)
+        "11": {"class_type": "KSamplerAdvanced", "inputs": {
+            "model": ["3", 0],
+            "positive": ["10", 0], "negative": ["10", 1], "latent_image": ["10", 2],
+            "noise_seed": seed, "steps": steps, "cfg": 3.5,
+            "sampler_name": "euler", "scheduler": "simple",
+            "add_noise": "enable", "start_at_step": 0, "end_at_step": half_steps,
+            "return_with_leftover_noise": "enable",
         }},
-        "8": {"class_type": "WanImageToVideo", "inputs": {
-            "positive": ["4", 0], "negative": ["5", 0],
-            "vae": ["6", 0], "start_image": ["7", 0],
-            "width": 832, "height": 480, "length": 49, "batch_size": 1,
+        # Pass 2: Low Noise expert (half_steps → end)
+        "12": {"class_type": "KSamplerAdvanced", "inputs": {
+            "model": ["4", 0],
+            "positive": ["10", 0], "negative": ["10", 1], "latent_image": ["11", 0],
+            "noise_seed": seed, "steps": steps, "cfg": 3.5,
+            "sampler_name": "euler", "scheduler": "simple",
+            "add_noise": "disable", "start_at_step": half_steps, "end_at_step": 10000,
+            "return_with_leftover_noise": "disable",
         }},
-        "9": {"class_type": "KSampler", "inputs": {
-            "seed": seed, "steps": 20, "cfg": 1.0,
-            "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0,
-            "model": ["1", 0], "positive": ["8", 0],
-            "negative": ["8", 1], "latent_image": ["8", 2],
-        }},
-        "10": {"class_type": "VAEDecode", "inputs": {
-            "samples": ["9", 0], "vae": ["6", 0],
-        }},
-        "11": {"class_type": "SaveAnimatedWEBP", "inputs": {
+        "13": {"class_type": "VAEDecode", "inputs": {"samples": ["12", 0], "vae": ["6", 0]}},
+        "14": {"class_type": "SaveAnimatedWEBP", "inputs": {
             "filename_prefix": "gentest_vid",
-            "images": ["10", 0],
+            "images": ["13", 0],
             "fps": 16.0,
             "lossless": True,
             "quality": 100,
