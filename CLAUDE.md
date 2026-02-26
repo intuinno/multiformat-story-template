@@ -640,6 +640,17 @@ High-noise expert가 초기 디노이징 (전체 구도/레이아웃), low-noise
 두 모델은 KSamplerAdvanced로 체이닝되어 순차적으로 실행된다 (steps 0→half: high noise, half→end: low noise).
 ModelSamplingSD3 shift=8.0, cfg=3.5가 공식 기본값이다. CLIPVision은 사용하지 않는다.
 
+**⚠ Wan I2V 안티 워블링 필수 사항:**
+단일 모델(low-noise만 또는 high-noise만)로 KSampler 한 패스를 돌리면 **영상이 흔들린다(wobbly)**.
+반드시 두 전문가를 모두 로드하고 KSamplerAdvanced 2패스로 체이닝해야 안정적인 영상이 나온다.
+구체적으로:
+- 두 모델 모두 `UNETLoader` → `ModelSamplingSD3(shift=8.0)` 적용
+- Pass 1: high-noise expert, `add_noise=enable`, `start=0`, `end=steps/2`, `return_with_leftover_noise=enable`
+- Pass 2: low-noise expert, `add_noise=disable`, `start=steps/2`, `end=10000`, `return_with_leftover_noise=disable`
+- Pass 2의 `latent_image`는 반드시 Pass 1의 출력을 받아야 한다
+- Negative prompt는 중국어로 작성한다 (Wan 모델이 중국어 데이터로 학습됨):
+  `"色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"`
+
 ### Model Files (설치 경로)
 
 ```
@@ -719,14 +730,17 @@ UNETLoader(z_image_turbo_bf16)
 
 **Wan 2.2 I2V 14B MoE (듀얼 전문가):**
 ```
-UNETLoader(high_noise_14B) + UNETLoader(low_noise_14B)
-  → ModelSamplingSD3(shift=8.0) × 2 (각 모델에 적용)
-  → CLIPLoader(umt5_xxl, type=wan) → CLIPTextEncode (positive + negative)
-  → LoadImage → WanImageToVideo(width=832, height=480, length=81)
-  → KSamplerAdvanced(high_noise, steps=20, cfg=3.5, start=0, end=10, noise=enable)
-  → KSamplerAdvanced(low_noise, steps=20, cfg=3.5, start=10, end=10000, noise=disable)
+UNETLoader(high_noise_14B, default) → ModelSamplingSD3(shift=8.0) → high_model
+UNETLoader(low_noise_14B, default)  → ModelSamplingSD3(shift=8.0) → low_model
+CLIPLoader(umt5_xxl, type=wan) → CLIPTextEncode(positive) + CLIPTextEncode(negative, 중국어)
+LoadImage → WanImageToVideo(width=832, height=480, length=49~81)
+  → KSamplerAdvanced(high_model, steps=20, cfg=3.5, start=0, end=10,
+      add_noise=enable, return_with_leftover_noise=enable)    ← Pass 1: 레이아웃
+  → KSamplerAdvanced(low_model, steps=20, cfg=3.5, start=10, end=10000,
+      add_noise=disable, return_with_leftover_noise=disable)  ← Pass 2: 디테일 (Pass 1 latent 입력)
   → VAEDecode(wan_2.1_vae) → [optional: RIFE VFI] → SaveAnimatedWEBP / VHS_VideoCombine
 ```
+**주의:** 단일 모델 + KSampler 한 패스 = 워블링. 반드시 2패스 체이닝 필수.
 
 **HunyuanVideo 1.5 I2V:**
 ```
